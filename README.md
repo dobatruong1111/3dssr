@@ -6,8 +6,8 @@
 
 ## API
 
-Example: \\
-`POST http://localhost:8000/dicom` \\
+Example: <br>
+`POST http://localhost:8000/dicom` <br>
 `{
     "path": "./data",
     "preset": "bone",
@@ -15,8 +15,8 @@ Example: \\
     "roll": 0,
     "elevation": 0,
     "azimuth": 0
-}` \\
-Description: \\
+}` <br>
+Description: <br>
 
 - `path`: path to dicom directory
 - `preset`: bone and skin
@@ -25,6 +25,6 @@ Description: \\
 - `elevation`: rotate on x-axis
 - `azimuth`: rotate on y-axis
 
-Note: \\
+Note: <br>
 
 - roll, elevation and azimuth are ordinal
