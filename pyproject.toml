@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "dicom-server-side-rendering"
+version = "0.1.0"
+description = "ITECH's Dicom Server Side Processing Service"
+authors = ["TrietCao <triet12369@gmail.com>"]
+readme = "README.md"
+packages = []
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sanic = "^22.12.0"
+python-dotenv = "^0.21.1"
+sanic-openapi = "^21.12.0"
+vtk = "^9.2.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,8 +1,22 @@
 # Dicom server side rendering
 
-## Run
+## Installation
+Install Poetry: https://python-poetry.org/docs/#installation
 
-`sanic server.app`
+Install dependencies:
+```commandline
+poetry install
+```
+Initialize virtual environment
+```commandline
+poetry shell
+```
+Run App
+```commandline
+poetry run sanic server.app
+```
+For PyCharm users, check out this guide on how to initialize with Poetry
+https://www.jetbrains.com/help/pycharm/poetry.html#9f0a3a09
 
 ## API
 
