@@ -1,80 +1,92 @@
 import vtk
 from settings import globalvars
 from models.colormap import CUSTOM_COLORMAP
+from models.preset import BONE_CT, ANGIO_CT, MUSCLE_CT, MIP
 
-def getBytes(inters):
-    volume = vtk.vtkVolume()
-    camera = vtk.vtkCamera()
-    render = vtk.vtkRenderer()
-    renWin = vtk.vtkRenderWindow()
-
-    # reader
-    path = inters.get("path")
-    globalvars.dicomImageReader.SetDirectoryName(path)
-    globalvars.dicomImageReader.Update()
-
-    # mapper
-    globalvars.volMap.SetInputData(globalvars.dicomImageReader.GetOutput())
-
-    # volume
-    volume.SetMapper(globalvars.volMap)
-
-    # volume property
-    rgbPoints = CUSTOM_COLORMAP.get("STANDARD_CT").get("rgbPoints")
-    globalvars.color.RemoveAllPoints()
-    for point in rgbPoints:
-        globalvars.color.AddRGBPoint(point[0], point[1], point[2], point[3])
-
-    preset = inters.get("preset")
-    if preset == "bone":
-        # bone
-        globalvars.scalarOpacity.RemoveAllPoints()
-        globalvars.scalarOpacity.AddPoint(0, 0)
-        globalvars.scalarOpacity.AddPoint(500, 0.15)
-        globalvars.scalarOpacity.AddPoint(800, 1)
-    else:
-        # skin
-        globalvars.scalarOpacity.RemoveAllPoints()
-        globalvars.scalarOpacity.AddPoint(-500, 0)
-        globalvars.scalarOpacity.AddPoint(500, 1)
+class Dicom3D:
+    def __init__(self) -> None:
+        self.volume = vtk.vtkVolume()
+        self.camera = vtk.vtkCamera()
+        self.render = vtk.vtkRenderer()
+        self.renWin = vtk.vtkRenderWindow()
     
-    globalvars.gradientOpacity.RemoveAllPoints()
-    globalvars.gradientOpacity.AddPoint(0, 0)
-    globalvars.gradientOpacity.AddPoint(90, 0.5)
-    globalvars.gradientOpacity.AddPoint(100, 1)
+    def getBytes(self, args):
+        # reader
+        path = args.get("path")
+        globalvars.dicomImageReader.SetDirectoryName(path)
+        globalvars.dicomImageReader.Update()
 
-    globalvars.volProperty.SetColor(globalvars.color)
-    globalvars.volProperty.SetScalarOpacity(globalvars.scalarOpacity)
-    globalvars.volProperty.SetGradientOpacity(globalvars.gradientOpacity)
-    
-    volume.SetProperty(globalvars.volProperty)
-    center = volume.GetCenter()
-    volume.SetPosition(-center[0], -center[1], -center[2])
+        # mapper
+        globalvars.volMap.SetInputData(globalvars.dicomImageReader.GetOutput())
 
-    # camera
-    camera.SetClippingRange(1, 5000)
-    camera.SetPosition(0, 0, 1)
-    if len(inters):
-        for inter in inters.keys():
-            if inter == "roll": camera.Roll(inters.get(inter))
-            elif inter == "azimuth": camera.Azimuth(inters.get(inter))
-            elif inter == "elevation": camera.Elevation(inters.get(inter))
-            elif inter == "position": camera.SetPosition(0, 0, inters.get(inter))
+        # volume
+        self.volume.SetMapper(globalvars.volMap)
 
-    # render
-    render.SetBackground(globalvars.colors.GetColor3d("white"))
-    render.SetActiveCamera(camera)
-    render.AddVolume(volume)
+        preset = args.get("preset")
 
-    # render window
-    renWin.AddRenderer(render)
-    renWin.SetSize(300, 300)
-    renWin.OffScreenRenderingOn()
+        # volume property
+        rgbPoints = CUSTOM_COLORMAP.get("STANDARD_CT").get("rgbPoints")
+        globalvars.color.RemoveAllPoints()
+        for point in rgbPoints:
+            globalvars.color.AddRGBPoint(point[0], point[1], point[2], point[3])
 
-    # write to memory
-    globalvars.winToImg.SetInput(renWin)
-    globalvars.writer.SetInputConnection(globalvars.winToImg.GetOutputPort())
-    globalvars.writer.WriteToMemoryOn()
-    globalvars.writer.Write()
+        if preset == "bone":
+            gradientOpacity = BONE_CT.get('transferFunction').get('opacityRange')
+            globalvars.scalarOpacity.RemoveAllPoints()
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[0], 0)
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[1], 1)
 
-    return bytes(memoryview(globalvars.writer.GetResult()))
+        elif preset == "angio":
+            gradientOpacity = ANGIO_CT.get('transferFunction').get('opacityRange')
+            globalvars.scalarOpacity.RemoveAllPoints()
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[0], 0)
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[1], 1)
+
+        elif preset == "muscle":
+            gradientOpacity = MUSCLE_CT.get('transferFunction').get('opacityRange')
+            globalvars.scalarOpacity.RemoveAllPoints()
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[0], 0)
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[1], 1)
+
+        else:
+            # modality type: CT or MR
+            # preset: MIP
+            gradientOpacity = MIP.get('transferFunction').get('opacityRange')
+            globalvars.scalarOpacity.RemoveAllPoints()
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[0], 0)
+            globalvars.scalarOpacity.AddPoint(gradientOpacity[1], 1)
+
+        globalvars.volProperty.SetColor(globalvars.color)
+        globalvars.volProperty.SetScalarOpacity(globalvars.scalarOpacity)
+        
+        self.volume.SetProperty(globalvars.volProperty)
+        center = self.volume.GetCenter()
+        self.volume.SetPosition(-center[0], -center[1], -center[2])
+
+        # camera
+        self.camera.SetClippingRange(1, 5000)
+        self.camera.SetPosition(0, 0, 1)
+        if len(args):
+            for inter in args.keys():
+                if inter == "roll": self.camera.Roll(args.get(inter))
+                elif inter == "azimuth": self.camera.Azimuth(args.get(inter))
+                elif inter == "elevation": self.camera.Elevation(args.get(inter))
+                elif inter == "position": self.camera.SetPosition(0, 0, args.get(inter))
+        
+        # render
+        self.render.SetBackground(globalvars.colors.GetColor3d("white"))
+        self.render.SetActiveCamera(self.camera)
+        self.render.AddVolume(self.volume)
+
+        # render window
+        self.renWin.AddRenderer(self.render)
+        self.renWin.SetSize(300, 300)
+        self.renWin.OffScreenRenderingOn()
+
+        # write to memory
+        globalvars.winToImg.SetInput(self.renWin)
+        globalvars.writer.SetInputConnection(globalvars.winToImg.GetOutputPort())
+        globalvars.writer.WriteToMemoryOn()
+        globalvars.writer.Write()
+
+        return bytes(memoryview(globalvars.writer.GetResult()))
